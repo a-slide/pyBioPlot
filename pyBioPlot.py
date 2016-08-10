@@ -186,3 +186,39 @@ def MA_plot (
     pl.legend(bbox_to_anchor=(1, 1), loc=2, frameon=False)
     pl.xlim(xlim)
     pl.ylim(ylim)
+
+#~~~~~~~ Generic utilities ~~~~~~~#
+
+def get_color_list(n, colormap="brg", plot_palette=False):
+    """
+    Return a list of l length with gradient colors from a given matplot lib colormap palette
+    @param n    Number of color scalar in the list
+    @param  colormap    colormap color palette from matplotlib package see http://matplotlib.org/examples/color/colormaps_reference.html
+                        exemple : inferno magma hot blues cool spring winter brg ocean hsv jet ... [DEFAULT: brg]
+    @param  plot_palette    if True will plot the palette for visualization purpose [DEFAULT: False]
+    @return A list of color codes that can be used for plotting
+    """
+    
+    # Prepare the figure if required
+    if plot_palette:
+        pl.figure(figsize=(n/2,1))
+        pl.xlim(-1, n+1)
+        pl.axis("off")
+    
+    # Init variables
+    cmap = mpl.cm.get_cmap(colormap)
+    l = []
+    index = 0
+    step = cmap.N/n
+    
+    # Icreate the list of colors
+    for i in range (n):
+        color = cmap(int(index))
+        l.append(color)
+        index+=step
+        
+        # Plot the figure if required
+        if plot_palette:
+            pl.scatter(i, 0, c=color, s=500, linewidth=0)
+    
+    return l
