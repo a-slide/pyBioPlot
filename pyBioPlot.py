@@ -26,6 +26,7 @@ def volcano_plot (
     sig_color="0.40",
     non_sig_color="0.70",
     highlight_list=[],
+    highlight_palette="Set1",
     **kwargs
     ):
     """
@@ -48,6 +49,7 @@ def volcano_plot (
                 example: highlight_list= [
                     {"target_id":["id1","id3"], "color":"red", "label":"s1"}
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
+    @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color, marker, alpha...
     """
@@ -86,7 +88,7 @@ def volcano_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
     
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val)
+    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
     for h in highlight_list:
         # Plot the additional series
         pl.scatter(
@@ -116,6 +118,7 @@ def MA_plot (
     sig_color="0.40",
     non_sig_color="0.70",
     highlight_list=[],
+    highlight_palette="Set1",
     **kwargs
     ):
     """
@@ -138,6 +141,7 @@ def MA_plot (
                 example: highlight_list= [
                     {"target_id":["id1","id3"], "color":"red", "label":"s1"}
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
+    @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color...
     """
@@ -176,7 +180,7 @@ def MA_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
 
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val)
+    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
     for h in highlight_list:
         # Plot the additional series
         pl.scatter(
@@ -200,6 +204,7 @@ def density_plot (
     cumulative=False,
     cut=3,
     highlight_list=[],
+    highlight_palette="Set1",
     **kwargs
     ):
     """
@@ -220,6 +225,7 @@ def density_plot (
                 example: highlight_list= [
                     {"target_id":["id1","id3"], "color":"red", "label":"s1"}
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
+    @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color...
     """
@@ -253,7 +259,7 @@ def density_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
 
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val)
+    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
     for h in highlight_list:
         # Plot the additional series
         sns.kdeplot(
@@ -376,10 +382,10 @@ def _plot_postprocessing(kws):
         loc=2,
         frameon=False)
     
-def _parse_highlight_list(highlight_list, df, default_val={}):
+def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette="Set1"):
     # Parse, clean and define default values if needed
     
-    colors = get_color_list(len(highlight_list), "jet")
+    colors = get_color_list(len(highlight_list), highlight_palette)
     clean_list=[]
     
     for i, h in enumerate(highlight_list):
