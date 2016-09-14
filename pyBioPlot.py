@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-@package pycl
+@package pyBioPlot
 @copyright  [GNU General Public License v2](http://www.gnu.org/licenses/gpl-2.0.html)
 @author     Adrien Leger - 2016
 * <aleg@ebi.ac.uk>
