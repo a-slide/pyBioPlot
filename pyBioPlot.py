@@ -23,8 +23,9 @@ def volcano_plot (
     df, X, Y,
     FDR=0.05,
     X_cutoff = 1,
-    sig_color="0.40",
-    non_sig_color="0.70",
+    sig_pos_color="0.5",
+    sig_neg_color="0.7",
+    non_sig_color="0.9",
     highlight_list=[],
     highlight_palette="Set1",
     **kwargs
@@ -37,8 +38,9 @@ def volcano_plot (
     @param  Y   Name of the column for Y plotting (usually pvalue)
     @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: 0.05]
     @param  X_cutoff    value for significance cut-off for the X axis [DEFAULT: 1]
-    @param  sig_color   Color of the significant points [DEFAULT: "0.40"] 
-    @param  non_sig_color Color of the non-significant points [DEFAULT: "0.70"]
+    @param  sig_pos_color   Color of the significant points on the positive side of the X axis [DEFAULT: "0.5"]
+    @param  sig_neg_color   Color of the significant points on the negative side of the Y axis [DEFAULT: "0.7"]
+    @param  non_sig_color Color of the non-significant points [DEFAULT: "0.9"]
     @param  highlight_list  List of dictionaries for values to highlight. Each entry contains:
                 [mandatory]     "target_id": List or pandas series of target_id matching target_id in the main df
             OR  [mandatory]     "df": A dataframe containing values with X and Y columns can be provided instead of the target_id list
@@ -78,11 +80,16 @@ def volcano_plot (
         marker=kwargs.get("marker", default_val["marker"]),
         alpha=kwargs.get("alpha", default_val["alpha"]))
         
-    # Plot significant values
-    sig_df = df.query("{0}<={1} and ({2}<=-{3} or {2} >= {3})".format(Y, FDR, X, X_cutoff))
-    pl.scatter(
-        sig_df[X], -np.log10(sig_df[Y]), color=sig_color,
-        label='Significant  n={}'.format(len(sig_df)),
+    # Plot significant positive values
+    sig_df = df[(df[Y]<=FDR) & (df[X]>0)]
+    pl.scatter( sig_df[X], -np.log10(sig_df[Y]), color=sig_pos_color, label='Significant positive n={}'.format(len(sig_df)),
+        linewidth=kwargs.get("linewidth", default_val["linewidth"]),
+        marker=kwargs.get("marker", default_val["marker"]),
+        alpha=kwargs.get("alpha", default_val["alpha"]))
+
+    # Plot significant negative values
+    sig_df = df[(df[Y]<=FDR) & (df[X]<0)]
+    pl.scatter( sig_df[X], -np.log10(sig_df[Y]), color=sig_neg_color, label='Significant negative n={}'.format(len(sig_df)),
         linewidth=kwargs.get("linewidth", default_val["linewidth"]),
         marker=kwargs.get("marker", default_val["marker"]),
         alpha=kwargs.get("alpha", default_val["alpha"]))
@@ -104,19 +111,18 @@ def volcano_plot (
     pl.hlines(0, kwargs["xlim"][0], kwargs["xlim"][1], colors='0.4', linestyles='--', linewidth=2, alpha=0.5)
     pl.vlines(0, kwargs["ylim"][0], kwargs["ylim"][1], colors='0.4', linestyles='--', linewidth=2, alpha=0.5)
     pl.hlines(-np.log10(FDR), kwargs["xlim"][0], kwargs["xlim"][1], colors='0.6', linestyles=':', linewidth=2, alpha=0.5)
-    pl.vlines(-X_cutoff, kwargs["ylim"][0], kwargs["ylim"][1], colors='0.6', linestyles=':', linewidth=2, alpha=0.5)
-    pl.vlines(X_cutoff, kwargs["ylim"][0], kwargs["ylim"][1], colors='0.6', linestyles=':', linewidth=2, alpha=0.5)
     
     # Tweak the graph
-    kwargs["title"]="Volcano Plot  FDR={} Xcutoff={}".format(FDR, X_cutoff)
+    kwargs["title"]="Volcano Plot  FDR={}".format(FDR)
     _plot_postprocessing(kwargs)
 
 def MA_plot (
     df, X, Y,
     FDR=0.05,
     FDR_col="pval",
-    sig_color="0.40",
-    non_sig_color="0.70",
+    sig_pos_color="0.5",
+    sig_neg_color="0.7",
+    non_sig_color="0.9",
     highlight_list=[],
     highlight_palette="Set1",
     **kwargs
@@ -129,8 +135,9 @@ def MA_plot (
     @param  Y   Name of the column for Y plotting (usually log2FC)
     @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: 0.05]
     @param  FDR_col Name of the column to use to determine the significance cut-off (usually pvalue)
-    @param  sig_color   Color of the significant points [DEFAULT: "0.40"] 
-    @param  non_sig_color Color of the non-significant points [DEFAULT: "0.70"] 
+    @param  sig_pos_color   Color of the significant points on the positive side of the X axis [DEFAULT: "0.5"]
+    @param  sig_neg_color   Color of the significant points on the negative side of the Y axis [DEFAULT: "0.7"]
+    @param  non_sig_color Color of the non-significant points [DEFAULT: "0.9"]
     @param  highlight_list  List of dictionaries for values to highlight. Each entry contains:
                 [mandatory]     "target_id": List or pandas series of target_id matching target_id in the main df
             OR  [mandatory]     "df": A dataframe containing values with X and Y columns can be provided instead of the target_id list
@@ -169,16 +176,21 @@ def MA_plot (
         linewidth=kwargs.get("linewidth", default_val["linewidth"]),
         marker=kwargs.get("marker", default_val["marker"]),
         alpha=kwargs.get("alpha", default_val["alpha"]))
-
-    # Plot significant values
-    sig_df = df.query("{}<={}".format(FDR_col, FDR))
-    pl.scatter(
-        sig_df[X], sig_df[Y], color=sig_color,
-        label='Significant  n={}'.format(len(sig_df)),
+        
+    # Plot significant positive values
+    sig_df = df[(df[FDR_col]<=FDR) & (df[Y]>0)]
+    pl.scatter( sig_df[X], sig_df[Y], color=sig_pos_color, label='Significant positive n={}'.format(len(sig_df)),
         linewidth=kwargs.get("linewidth", default_val["linewidth"]),
         marker=kwargs.get("marker", default_val["marker"]),
         alpha=kwargs.get("alpha", default_val["alpha"]))
 
+    # Plot significant negative values
+    sig_df = df[(df[FDR_col]<=FDR) & (df[Y]<0)]
+    pl.scatter( sig_df[X], sig_df[Y], color=sig_neg_color, label='Significant negative n={}'.format(len(sig_df)),
+        linewidth=kwargs.get("linewidth", default_val["linewidth"]),
+        marker=kwargs.get("marker", default_val["marker"]),
+        alpha=kwargs.get("alpha", default_val["alpha"]))
+        
     # Highlight the categories given in the highlight list
     highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
     for h in highlight_list:
