@@ -28,6 +28,7 @@ def volcano_plot (
     non_sig_color="0.9",
     highlight_list=[],
     highlight_palette="Set1",
+    highlight_FDR=None,
     **kwargs
     ):
     """
@@ -52,6 +53,7 @@ def volcano_plot (
                     {"target_id":["id1","id3"], "color":"red", "label":"s1"}
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
     @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
+    @param  highlight_FDR   if a value if given the highlight list will be thresholded by the given FDR [DEFAULT: None]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color, marker, alpha...
     """
@@ -95,7 +97,7 @@ def volcano_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
     
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
+    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette, highlight_FDR, Y)
     for h in highlight_list:
         # Plot the additional series
         pl.scatter(
@@ -125,6 +127,7 @@ def MA_plot (
     non_sig_color="0.9",
     highlight_list=[],
     highlight_palette="Set1",
+    highlight_FDR=None,
     **kwargs
     ):
     """
@@ -149,6 +152,7 @@ def MA_plot (
                     {"target_id":["id1","id3"], "color":"red", "label":"s1"}
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
     @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
+    @param  highlight_FDR   if a value if given the highlight list will be thresholded by the given FDR [DEFAULT: None]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color...
     """
@@ -192,7 +196,7 @@ def MA_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
         
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
+    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette, highlight_FDR, FDR_col)
     for h in highlight_list:
         # Plot the additional series
         pl.scatter(
@@ -396,11 +400,11 @@ def _plot_preprocessing(kws):
 
 def _plot_postprocessing(kws):
     if "title" in kws:
-        pl.title(kws["title"])
+        pl.title(kws["title"], fontsize=15)
     if "xlabel" in kws:
-        pl.xlabel(kws["xlabel"])
+        pl.xlabel(kws["xlabel"], fontsize=15)
     if "ylabel" in kws:
-        pl.ylabel(kws["ylabel"])
+        pl.ylabel(kws["ylabel"], fontsize=15)
     if "xlim" in kws:
         pl.xlim(kws["xlim"])
     if "ylim" in kws:
@@ -408,9 +412,10 @@ def _plot_postprocessing(kws):
     pl.legend(
         bbox_to_anchor=(1, 1),
         loc=2,
-        frameon=False)
+        frameon=False,
+        fontsize=15)
     
-def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette="Set1"):
+def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette="Set1", FDR=None, FDR_col=None):
     # Parse, clean and define default values if needed
     
     colors = get_color_list(n=len(highlight_list), colormap=highlight_palette)
@@ -418,26 +423,30 @@ def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette=
     
     for i, h in enumerate(highlight_list):
         
-        h2={}
         # Extract of define default values = Can be expanded later
         if "df" not in h and "target_id" in h:
-            h2["df"] = df[(df.target_id.isin(h["target_id"]))]
+            df2 = df[(df.target_id.isin(h["target_id"]))]
         elif "df" in h:
-            h2["df"] = h["df"].dropna()
+            df2 = h["df"].dropna()
         else:
             print("Target_id list of dataframe required for series #{}. Skipping to the next one".format(i))
             continue
         
-        if len(h2["df"]) == 0:
+        if FDR:
+            df2 = df2[(df2[FDR_col]<=FDR)]
+        
+        if len(df2) == 0:
             print("Series #{} empty. Skipping to the next one".format(i))
             continue
         
-        h2["label"] = "{}  n={}".format(h.get("label", "Series #"+str(i)), len(h2["df"]))
-        h2["color"] = h.get("color", next(colors))
-        h2["alpha"] = h.get("alpha", default_val.get("alpha", 1))
-        h2["marker"] = h.get("marker", default_val.get("marker", "o"))
-        h2["linewidth"] = h.get("linewidth", default_val.get("linewidth", 0))
-        h2["linestyle"] = h.get("linestyle", default_val.get("linestyle", "-"))
+        h2={
+            "df":df2,
+            "label":"{}  n={}".format(h.get("label", "Series #"+str(i)), len(df2)),
+            "color":h.get("color", next(colors)),
+            "alpha":h.get("alpha", default_val.get("alpha", 1)),
+            "marker":h.get("marker", default_val.get("marker", "o")),
+            "linewidth":h.get("linewidth", default_val.get("linewidth", 0)),
+            "linestyle":h.get("linestyle", default_val.get("linestyle", "-"))}
         
         clean_list.append(h2)
     
