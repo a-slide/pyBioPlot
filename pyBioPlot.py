@@ -21,7 +21,7 @@ import matplotlib as mpl
 
 def volcano_plot (
     df, X, Y,
-    FDR=0.05,
+    FDR=1,
     X_cutoff = 1,
     sig_pos_color="0.5",
     sig_neg_color="0.7",
@@ -29,6 +29,7 @@ def volcano_plot (
     highlight_list=[],
     highlight_palette="Set1",
     highlight_FDR=None,
+    highlight_min_targets=0,
     **kwargs
     ):
     """
@@ -37,7 +38,7 @@ def volcano_plot (
                 identified by a target_id column. The other covariate columns need to contain the values for X and Y plotting  
     @param  X   Name of the column for X plotting (usually log2FC)
     @param  Y   Name of the column for Y plotting (usually pvalue)
-    @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: 0.05]
+    @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: 1]
     @param  X_cutoff    value for significance cut-off for the X axis [DEFAULT: 1]
     @param  sig_pos_color   Color of the significant points on the positive side of the X axis [DEFAULT: "0.5"]
     @param  sig_neg_color   Color of the significant points on the negative side of the Y axis [DEFAULT: "0.7"]
@@ -54,6 +55,8 @@ def volcano_plot (
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
     @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
     @param  highlight_FDR   if a value if given the highlight list will be thresholded by the given FDR [DEFAULT: None]
+    @param  highlight_min_targets    Mininal number of targets in a series of the highlight list. If below the series will not be plotted  
+            [DEFAULT: 0]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color, marker, alpha...
     """
@@ -62,7 +65,7 @@ def volcano_plot (
     default_val = {
         "linewidth":0,
         "marker":"o",
-        "alpha":1,
+        "alpha":0.5,
         "xlim":[df[X].min()-1, df[X].max()+1],
         "ylim":[-np.log10(df[Y].max())-1, -np.log10(df[Y].min())+1]}
         
@@ -97,7 +100,15 @@ def volcano_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
     
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette, highlight_FDR, Y)
+    highlight_list = _parse_highlight_list (
+        highlight_list=highlight_list,
+        df=df,
+        default_val=default_val,
+        highlight_palette=highlight_palette,
+        FDR=highlight_FDR,
+        FDR_col=Y,
+        min_targets=highlight_min_targets)
+        
     for h in highlight_list:
         # Plot the additional series
         pl.scatter(
@@ -120,7 +131,7 @@ def volcano_plot (
 
 def MA_plot (
     df, X, Y,
-    FDR=0.05,
+    FDR=1,
     FDR_col="pval",
     sig_pos_color="0.5",
     sig_neg_color="0.7",
@@ -128,6 +139,7 @@ def MA_plot (
     highlight_list=[],
     highlight_palette="Set1",
     highlight_FDR=None,
+    highlight_min_targets=0,
     **kwargs
     ):
     """
@@ -136,7 +148,7 @@ def MA_plot (
                 identified by a target_id column. The other covariate columns need to contain the values for X and Y plotting  
     @param  X   Name of the column for X plotting (usually Mean expression)
     @param  Y   Name of the column for Y plotting (usually log2FC)
-    @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: 0.05]
+    @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: 1]
     @param  FDR_col Name of the column to use to determine the significance cut-off (usually pvalue)
     @param  sig_pos_color   Color of the significant points on the positive side of the X axis [DEFAULT: "0.5"]
     @param  sig_neg_color   Color of the significant points on the negative side of the Y axis [DEFAULT: "0.7"]
@@ -153,6 +165,8 @@ def MA_plot (
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
     @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
     @param  highlight_FDR   if a value if given the highlight list will be thresholded by the given FDR [DEFAULT: None]
+    @param  highlight_min_targets    Mininal number of targets in a series of the highlight list. If below the series will not be plotted  
+            [DEFAULT: 0]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color...
     """
@@ -161,7 +175,7 @@ def MA_plot (
     default_val = {
         "linewidth":0,
         "marker":"o",
-        "alpha":1,
+        "alpha":0.5,
         "xlim":[df[X].min()-1, df[X].max()+1],
         "ylim":[df[Y].min()-1, df[Y].max()+1]}
         
@@ -196,7 +210,15 @@ def MA_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
         
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette, highlight_FDR, FDR_col)
+    highlight_list = _parse_highlight_list (
+        highlight_list=highlight_list,
+        df=df,
+        default_val=default_val,
+        highlight_palette=highlight_palette,
+        FDR=highlight_FDR,
+        FDR_col=FDR_col,
+        min_targets=highlight_min_targets)
+    
     for h in highlight_list:
         # Plot the additional series
         pl.scatter(
@@ -217,10 +239,14 @@ def MA_plot (
 
 def density_plot (
     df, X,
+    FDR=None,
+    FDR_col="pval",
     cumulative=False,
     cut=3,
     highlight_list=[],
     highlight_palette="Set1",
+    highlight_FDR=None,
+    highlight_min_targets=0,
     **kwargs
     ):
     """
@@ -228,6 +254,8 @@ def density_plot (
     @param  df  Panda dataframe containing the results. Each line corresponds to a single gene/transcript value. Gene/transcript are
                 identified by a target_id column. The other covariate columns need to contain the values for X and Y plotting  
     @param  X   Name of the column to calculate density (usually Mean expression)
+    @param  FDR false discovery rate cut-off for the Y axis (on the raw value before log transformation for plotting [DEFAULT: None]
+    @param  FDR_col Name of the column to use to determine the significance cut-off (usually pvalue)
     @param  cumulative If true, will plot a cumulative distribution [DEFAULT: 1]
     @param  highlight_list  List of dictionaries for values to highlight. Each entry contains:
                 [mandatory]     "target_id": List or pandas series of target_id matching target_id in the main df
@@ -242,6 +270,9 @@ def density_plot (
                     {"target_id":["id1","id3"], "color":"red", "label":"s1"}
                     {"target_id":["id4","id7","id9"], "color":"green", "label":"s2", "marker":">", "alpha":0.5}]
     @param  highlight_palette palette to be used to automatically assign colors to each element of the highlight_list [DEFAULT: "Set1"]
+    @param  highlight_FDR   if a value if given the highlight list will be thresholded by the given FDR [DEFAULT: None]
+    @param  highlight_min_targets    Mininal number of targets in a series of the highlight list. If below the series will not be plotted  
+            [DEFAULT: 0]
     @param  kwargs  Additional parameters for plot appearance derived from pylab basic plot arguments such as:
                 figsize, xlim, ylim, title, xlabel, ylabel, bg_color, grid_color...
     """
@@ -262,8 +293,11 @@ def density_plot (
     kwargs["xlim"] = kwargs.get("xlim", default_val["xlim"])
     kwargs["ylim"] = kwargs.get("ylim", default_val["ylim"])
 
-    # Plot all the values from the df   
+    # Remove empty values, thresholf with FDR and plot all the values from the df   
     df = df.dropna()
+    if FDR:
+        df = df[(df[FDR_col]<=FDR)]
+    
     sns.kdeplot(
         df[X],
         cumulative=cumulative,
@@ -275,7 +309,15 @@ def density_plot (
         alpha=kwargs.get("alpha", default_val["alpha"]))
 
     # Highlight the categories given in the highlight list
-    highlight_list = _parse_highlight_list (highlight_list, df, default_val, highlight_palette)
+    highlight_list = _parse_highlight_list (
+        highlight_list=highlight_list,
+        df=df,
+        default_val=default_val,
+        highlight_palette=highlight_palette,
+        FDR=highlight_FDR,
+        FDR_col=FDR_col,
+        min_targets=highlight_min_targets)
+        
     for h in highlight_list:
         # Plot the additional series
         sns.kdeplot(
@@ -399,12 +441,16 @@ def _plot_preprocessing(kws):
         right=False)
 
 def _plot_postprocessing(kws):
+    if "fontsize" in kws:
+        fontsize=kws["fontsize"]
+    else:
+        fontsize=10
     if "title" in kws:
-        pl.title(kws["title"], fontsize=15)
+        pl.title(kws["title"], fontsize=fontsize)
     if "xlabel" in kws:
-        pl.xlabel(kws["xlabel"], fontsize=15)
+        pl.xlabel(kws["xlabel"], fontsize=fontsize)
     if "ylabel" in kws:
-        pl.ylabel(kws["ylabel"], fontsize=15)
+        pl.ylabel(kws["ylabel"], fontsize=fontsize)
     if "xlim" in kws:
         pl.xlim(kws["xlim"])
     if "ylim" in kws:
@@ -413,9 +459,11 @@ def _plot_postprocessing(kws):
         bbox_to_anchor=(1, 1),
         loc=2,
         frameon=False,
-        fontsize=15)
+        fontsize=fontsize)
+    pl.xticks(fontsize=fontsize)
+    pl.yticks(fontsize=fontsize)
     
-def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette="Set1", FDR=None, FDR_col=None):
+def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette="Set1", FDR=None, FDR_col=None, min_targets=0):
     # Parse, clean and define default values if needed
     
     colors = get_color_list(n=len(highlight_list), colormap=highlight_palette)
@@ -435,8 +483,8 @@ def _parse_highlight_list(highlight_list, df, default_val={}, highlight_palette=
         if FDR:
             df2 = df2[(df2[FDR_col]<=FDR)]
         
-        if len(df2) == 0:
-            print("Series #{} empty. Skipping to the next one".format(i))
+        if len(df2) <= min_targets:
+            #print("Not enought values in series #{}. Skipping to the next one".format(i))
             continue
         
         h2={
