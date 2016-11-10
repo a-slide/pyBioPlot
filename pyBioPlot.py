@@ -441,9 +441,10 @@ def PCA_var_plot (df, variable_col, sample_col, value_col, plot_style="ggplot", 
     return (pca_df)
 
 
-def PCA(df, variable_col, sample_col, value_col, space="sample", pcx=1, pcy=2, point_label=False, plot_style="ggplot", **kwargs):
+def PCA(df, variable_col, sample_col, value_col, pcx=1, pcy=2, point_label=False, plot_style="ggplot", **kwargs):
     """
-    Plot a the frequence of contribution to the variance of the principal components from a dataframe in “stacked” or “record” format
+    Plot a the frequence of contribution to the variance of the principal components from a dataframe in “stacked” or “record” format.
+    Use matplotlib PCA implementation
     *  df
         A pandas dataframe with a least the 3 following columns:
         - variable_col = column containing variable identifiers (such as gene identifiers)
@@ -455,8 +456,6 @@ def PCA(df, variable_col, sample_col, value_col, space="sample", pcx=1, pcy=2, p
         Name or index of the column containing sample identifiers
     *  value_col
         Name or index of the column containing values
-    *  space
-        plot the PCA in the variable space or the variable space [ DEFAULT: "sample" ]
     *  pcx
         Number of the component to plot on the x axis [ DEFAULT: 1 ]
     *  pcy
@@ -473,7 +472,6 @@ def PCA(df, variable_col, sample_col, value_col, space="sample", pcx=1, pcy=2, p
     
     # Perform PCA analysis
     pca_res = pl.mlab.PCA(df, standardize=True)
-    pca_res.center(0)
     
     # Prepare plotting area and parameters
     figsize = kwargs["figsize"] if "figsize" in kwargs else [10, 10]
@@ -485,14 +483,9 @@ def PCA(df, variable_col, sample_col, value_col, space="sample", pcx=1, pcy=2, p
     alpha = kwargs["alpha"] if "alpha" in kwargs else 1
     linewidths = kwargs["linewidths"] if "linewidths" in kwargs else 3
     
-    # Extract data from the variable or the sample space and plot it
-    if space == "sample":
-        df_res = pd.DataFrame(data=np.array(pca_res.Wt), index=pca_res.a.columns, columns=range(1, len(pca_res.a.columns)+1))
-        ax.scatter(df_res[pcx], df_res[pcy], linewidths=linewidths, edgecolor=color, color=color, alpha=alpha)
-    
-    elif space == "variable":
-        df_res = pd.DataFrame(data=np.array(pca_res.Y), index=pca_res.a.index, columns=range(1, len(pca_res.a.columns)+1))
-        ax.scatter(df_res[pcx], df_res[pcy], linewidths=linewidths, edgecolor=color, color=color, alpha=alpha)
+    # Extract data and plot it
+    df_res = pd.DataFrame(data=np.array(pca_res.Wt), index=pca_res.a.columns, columns=range(1, len(pca_res.a.columns)+1))
+    ax.scatter(df_res[pcx], df_res[pcy], linewidths=linewidths, edgecolor=color, color=color, alpha=alpha)
     
     if point_label:
         for name, val in df_res.iterrows():
@@ -500,7 +493,7 @@ def PCA(df, variable_col, sample_col, value_col, space="sample", pcx=1, pcy=2, p
     
     ax.set_xlabel("PC{} ({}%)".format(pcx, round(pca_res.fracs[pcx-1]*100, 2)))
     ax.set_ylabel("PC{} ({}%)".format(pcy, round(pca_res.fracs[pcy-1]*100, 2)))
-    ax.set_title(kwargs["title"] if "title" in kwargs else "Principal component PC{}/PC{} in the {} space".format(pcx, pcy, space))
+    ax.set_title(kwargs["title"] if "title" in kwargs else "Principal component PC{}/PC{}".format(pcx, pcy))
     
     # Fontsize and fontname
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
@@ -508,6 +501,75 @@ def PCA(df, variable_col, sample_col, value_col, space="sample", pcx=1, pcy=2, p
         item.set_fontname(fontname)
 
     return (df_res)
+
+def PCA2(df, variable_col, sample_col, value_col, pcx=1, pcy=2, point_label=False, plot_style="ggplot", **kwargs):
+    """
+    Plot a the frequence of contribution to the variance of the principal components from a dataframe in “stacked” or “record” format.
+    Use sklearn PCA implementation
+    *  df
+        A pandas dataframe with a least the 3 following columns:
+        - variable_col = column containing variable identifiers (such as gene identifiers)
+        - sample_col = column containing sample identifiers (such as experimental condition)
+        - value_col = column containing quantitative numeric values
+    *  variable_col
+        Name or index of the column containing variable identifiers
+    *  sample_col
+        Name or index of the column containing sample identifiers
+    *  value_col
+        Name or index of the column containing values
+    *  pcx
+        Number of the component to plot on the x axis [ DEFAULT: 1 ]
+    *  pcy
+        Number of the component to plot on the y axis [ DEFAULT: 2 ]
+    * point_label
+        If True the points will be labelled with their names
+    *  plot_style
+        Default plot style for pyplot ('grayscale'|'bmh'|'ggplot'|'dark_background'|'classic'|'fivethirtyeight'...)[ DEFAULT: "ggplot" ]
+    *  kwargs
+        Additional parameters for plot appearance derived from pylab basic plot arguments such as: title, color, alpha, fontsize, fontname, linewidths
+    """
+    
+    from sklearn import decomposition
+    
+    # pivot data to reorganize df
+    df = df.pivot(index=sample_col, columns=variable_col, values=value_col)
+    n_comp = len(df)
+    print (n_comp) 
+    
+    # Perform PCA analysis with sklearn
+    pca = decomposition.PCA()
+    pca_res = pca.fit(df)
+    
+    # Extract pca data and cast in panda dataframe
+    pca_data = pd.DataFrame(pca_res.transform(df), index=df.index, columns=range(1,n_comp+1))
+    
+    # Prepare plotting area and parameters
+    figsize = kwargs["figsize"] if "figsize" in kwargs else [10, 10]
+    fig, ax = pl.subplots(figsize=figsize)
+    pl.style.use(plot_style)
+    fontsize = kwargs["fontsize"] if "fontsize" in kwargs else 10
+    fontname = kwargs["fontname"] if "fontname" in kwargs else "Sans"
+    color =  kwargs["color"] if "color" in kwargs else "black"
+    alpha = kwargs["alpha"] if "alpha" in kwargs else 1
+    linewidths = kwargs["linewidths"] if "linewidths" in kwargs else 3
+    
+    # Extract data and plot it
+    for name, val in pca_data.iterrows():
+        ax.scatter(val[pcx], val[pcy], linewidths=linewidths, edgecolor=color, color=color, alpha=alpha)
+        if point_label:
+            ax.text(x=val[pcx], y=val[pcy], s=name, horizontalalignment="center", fontsize=fontsize-2, fontname=fontname)
+
+    ax.set_xlabel("PC{} ({}%)".format(pcx, round(pca_res.explained_variance_ratio_[pcx-1]*100, 2)))
+    ax.set_ylabel("PC{} ({}%)".format(pcy, round(pca_res.explained_variance_ratio_[pcy-1]*100, 2)))
+    ax.set_title(kwargs["title"] if "title" in kwargs else "Principal component PC{}/PC{})".format(pcx, pcy))
+    
+    # Fontsize and fontname
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(fontsize)
+        item.set_fontname(fontname)
+
+    return pca_data
+
 
 #~~~~~~~ Generic utilities ~~~~~~~#
 
