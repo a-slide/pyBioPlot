@@ -534,7 +534,6 @@ def PCA2(df, variable_col, sample_col, value_col, pcx=1, pcy=2, point_label=Fals
     # pivot data to reorganize df
     df = df.pivot(index=sample_col, columns=variable_col, values=value_col)
     n_comp = len(df)
-    print (n_comp) 
     
     # Perform PCA analysis with sklearn
     pca = decomposition.PCA()
